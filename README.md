@@ -26,6 +26,10 @@ Here's a quick demo of Claude Ubuntu OS in action:
 
 ---
 
+[![Deploy to Fly.io](https://fly.io/static/images/brand/logo-landscape.svg)](https://fly.io/launch?url=https://github.com/Justmalhar/claude-ubuntu-os)
+
+--- 
+
 ## Getting Started in GitHub Codespaces
 
 You can run **Claude Ubuntu OS** in GitHub Codespaces, providing a quick way to test and run this project in the cloud.
