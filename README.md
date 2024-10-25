@@ -27,6 +27,20 @@ Here's a quick demo of Claude Ubuntu OS in action:
 ---
 
 
+## One-Click Deploy
+
+Deploy **Claude Ubuntu OS** easily to the following platforms:
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?repository=Justmalhar/claude-ubuntu-os)
+
+[![Deploy to Fly.io](https://fly.io/docs/assets/button.svg)](https://fly.io/launch?url=https://github.com/Justmalhar/claude-ubuntu-os)
+
+<!-- Heroku deploy button (optional) -->
+<!-- [![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy) -->
+
+---
+
+
 ## Getting Started in GitHub Codespaces
 
 You can run **Claude Ubuntu OS** in GitHub Codespaces, providing a quick way to test and run this project in the cloud.
