@@ -1,72 +1,94 @@
 <!doctype html>
-<html>
+<html lang="en">
     <head>
-        <title>Computer Use Demo</title>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="permissions-policy" content="fullscreen=*" />
+        <title>Claude Ubuntu OS</title>
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+        <link rel="icon" type="image/png" sizes="32x32" href="https://assets.ubuntu.com/v1/be7e4cc6-COF-favicon-32x32.png">
         <style>
             body {
                 margin: 0;
                 padding: 0;
                 overflow: hidden;
             }
-            .container {
-                display: flex;
-                height: 100vh;
-                width: 100vw;
-            }
-            .left {
-                flex: 1;
+
+            iframe {
+                width: 100%;
+                height: 100%;
                 border: none;
-                height: 100vh;
             }
-            .right {
-                flex: 2;
-                border: none;
-                height: 100vh;
+
+            .ubuntu-orange {
+                background-color: #E95420;
+            }
+
+            .ubuntu-dark {
+                background-color: #2C001E;
+            }
+
+            .ubuntu-light {
+                background-color: #300A24;
+            }
+
+            .ubuntu-hover:hover {
+                background-color: #DB4424;
+            }
+
+            .top-bar {
+                background-color: #2C001E;
+                color: white;
             }
         </style>
     </head>
-    <body>
-        <div class="container">
-            <iframe
-                src="http://localhost:8501"
-                class="left"
-                allow="fullscreen"
-            ></iframe>
-            <iframe
-                id="vnc"
-                src="http://127.0.0.1:6080/vnc.html?&resize=scale&autoconnect=1&view_only=1&reconnect=1&reconnect_delay=2000"
-                class="right"
-                allow="fullscreen"
-            ></iframe>
-            <button
-                id="toggleViewOnly"
-                style="position: absolute; top: 10px; right: 10px; z-index: 1000"
-            >
-                Toggle Screen Control (Off)
-            </button>
-            <script>
-                document
-                    .getElementById("toggleViewOnly")
-                    .addEventListener("click", function () {
-                        var vncIframe = document.getElementById("vnc");
-                        var button = document.getElementById("toggleViewOnly");
-                        var currentSrc = vncIframe.src;
-                        if (currentSrc.includes("view_only=1")) {
-                            vncIframe.src = currentSrc.replace(
-                                "view_only=1",
-                                "view_only=0",
-                            );
-                            button.innerText = "Toggle Screen Control (On)";
-                        } else {
-                            vncIframe.src = currentSrc.replace(
-                                "view_only=0",
-                                "view_only=1",
-                            );
-                            button.innerText = "Toggle Screen Control (Off)";
-                        }
-                    });
-            </script>
+    <body class="bg-gray-900">
+        <div class="flex flex-col h-screen">
+            <!-- Top Bar -->
+            <header class="flex items-center justify-between top-bar py-3 px-6">
+                <h1 class="text-lg font-semibold">🟠 Claude Ubuntu OS</h1>
+                <button id="toggleViewOnly" class="ubuntu-orange ubuntu-hover text-white font-bold py-2 px-4 rounded focus:outline-none">
+                    Toggle Screen Control (Off)
+                </button>
+            </header>
+
+            <!-- Main Content -->
+            <div class="flex flex-grow flex-col sm:flex-col lg:flex-row">
+                <!-- VNC Viewer -->
+                <div class="flex-1 bg-ubuntu-light shadow-lg">
+                    <iframe id="vncIframe" allow="fullscreen"></iframe>
+                </div>
+
+                <!-- Streamlit App -->
+                <div class="flex-1 bg-ubuntu-dark shadow-lg">
+                    <iframe id="streamlitIframe" allow="fullscreen"></iframe>
+                </div>
+            </div>
         </div>
+
+        <script>
+            // Get the base hostname and dynamically generate URLs for the iframes
+            const baseHost = window.location.hostname.split('-').slice(0, -1).join('-');
+
+            // Dynamically set iframe URLs using the port mappings provided by GitHub Codespaces
+            document.getElementById('streamlitIframe').src = `https://${baseHost}-8501.app.github.dev`;
+            document.getElementById('vncIframe').src = `https://${baseHost}-6080.app.github.dev/vnc.html?view_only=1&autoconnect=1&resize=scale`;
+
+            // Handle Toggle Screen Control
+            document.getElementById("toggleViewOnly").addEventListener("click", function () {
+                var vncIframe = document.getElementById("vncIframe");
+                var button = document.getElementById("toggleViewOnly");
+                var currentSrc = vncIframe.src;
+                if (currentSrc.includes("view_only=1")) {
+                    vncIframe.src = currentSrc.replace("view_only=1", "view_only=0");
+                    button.innerHTML = 'Toggle Screen Control (On)';
+                    button.classList.replace("ubuntu-orange", "bg-green-500");
+                } else {
+                    vncIframe.src = currentSrc.replace("view_only=0", "view_only=1");
+                    button.innerHTML = 'Toggle Screen Control (Off)';
+                    button.classList.replace("bg-green-500", "ubuntu-orange");
+                }
+            });
+        </script>
     </body>
 </html>

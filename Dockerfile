@@ -58,11 +58,11 @@ RUN git clone --branch v1.5.0 https://github.com/novnc/noVNC.git /opt/noVNC && \
     ln -s /opt/noVNC/vnc.html /opt/noVNC/index.html
 
 # setup user
-ENV USERNAME=computeruse
+ENV USERNAME=agent
 ENV HOME=/home/$USERNAME
 RUN useradd -m -s /bin/bash -d $HOME $USERNAME
 RUN echo "${USERNAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-USER computeruse
+USER agent
 WORKDIR $HOME
 
 # setup python
@@ -92,7 +92,7 @@ COPY --chown=$USERNAME:$USERNAME agent/requirements.txt $HOME/agent/requirements
 RUN python -m pip install -r $HOME/agent/requirements.txt
 
 # setup desktop env & app
-COPY --chown=$USERNAME:$USERNAME image/ $HOME
+COPY --chown=$USERNAME:$USERNAME os_utils/ $HOME
 COPY --chown=$USERNAME:$USERNAME agent/ $HOME/agent/
 
 ARG DISPLAY_NUM=1

@@ -96,7 +96,7 @@ async def main():
 
     st.markdown(STREAMLIT_STYLE, unsafe_allow_html=True)
 
-    st.title("Claude Computer Use Demo")
+    st.title("Claude Ubuntu OS")
 
     if not os.getenv("HIDE_WARNING", False):
         st.warning(WARNING_TEXT)
