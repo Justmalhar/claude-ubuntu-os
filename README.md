@@ -55,8 +55,7 @@ To run the pre-built Docker image, follow these steps:
 3. **Pull and Run the Docker Image from Docker Hub**:
    Run the following commands in the Codespaces terminal to pull and run the pre-built Docker image from Docker Hub:
    ```bash
-   docker pull justmalhar/claude-ubuntu-os:latest
-   docker run -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY -p 8080:8080 -p 6080:6080 -p 8501:8501 justmalhar/claude-ubuntu-os:latest
+   docker pull justmalhar/claude-ubuntu-os:latest && docker run -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY -p 8080:8080 -p 6080:6080 -p 8501:8501 justmalhar/claude-ubuntu-os:latest
    ```
 
 4. **Access the Desktop Environment**:
