@@ -1,0 +1,25 @@
+app = "claude-ubuntu-os"
+
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80
+
+[[services]]
+  internal_port = 6080
+  protocol = "tcp"
+  [[services.ports]]
+    handlers = ["http"]
+    port = 6080
+
+[[services]]
+  internal_port = 8501
+  protocol = "tcp"
+  [[services.ports]]
+    handlers = ["http"]
+    port = 8501
+
+[build]
+  image = "justmalhar/claude-ubuntu-os:latest"
