@@ -20,16 +20,37 @@ TYPING_GROUP_SIZE = 50
 
 Action = Literal[
     "key",
+    "hold_key",
     "type",
+    "cursor_position",
     "mouse_move",
+    "left_mouse_down",
+    "left_mouse_up",
     "left_click",
     "left_click_drag",
     "right_click",
     "middle_click",
     "double_click",
+    "triple_click",
+    "scroll",
+    "wait",
     "screenshot",
-    "cursor_position",
 ]
+
+ScrollDirection = Literal["up", "down", "left", "right"]
+
+CLICK_BUTTONS: dict[str, str] = {
+    "left_click": "1",
+    "middle_click": "2",
+    "right_click": "3",
+}
+
+SCROLL_BUTTONS: dict[str, str] = {
+    "up": "4",
+    "down": "5",
+    "left": "6",
+    "right": "7",
+}
 
 
 class Resolution(TypedDict):
@@ -111,30 +132,43 @@ class ComputerTool(BaseAnthropicTool):
         action: Action,
         text: str | None = None,
         coordinate: tuple[int, int] | None = None,
+        scroll_direction: ScrollDirection | None = None,
+        scroll_amount: int | None = None,
+        duration: int | float | None = None,
         **kwargs,
     ):
-        if action in ("mouse_move", "left_click_drag"):
+        if action == "mouse_move":
             if coordinate is None:
                 raise ToolError(f"coordinate is required for {action}")
             if text is not None:
                 raise ToolError(f"text is not accepted for {action}")
-            if not isinstance(coordinate, list) or len(coordinate) != 2:
-                raise ToolError(f"{coordinate} must be a tuple of length 2")
-            if not all(isinstance(i, int) and i >= 0 for i in coordinate):
-                raise ToolError(f"{coordinate} must be a tuple of non-negative ints")
+            x, y = self._validate_and_get_coordinates(coordinate)
+            return await self.shell(f"{self.xdotool} mousemove --sync {x} {y}")
 
-            x, y = self.scale_coordinates(
-                ScalingSource.API, coordinate[0], coordinate[1]
+        if action == "left_click_drag":
+            if coordinate is None:
+                raise ToolError(f"coordinate is required for {action}")
+            start_coordinate = kwargs.get("start_coordinate")
+            x, y = self._validate_and_get_coordinates(coordinate)
+            move_cmd = ""
+            if start_coordinate is not None:
+                sx, sy = self._validate_and_get_coordinates(start_coordinate)
+                move_cmd = f"mousemove --sync {sx} {sy} "
+            return await self.shell(
+                f"{self.xdotool} {move_cmd}mousedown 1 mousemove --sync {x} {y} mouseup 1"
             )
 
-            if action == "mouse_move":
-                return await self.shell(f"{self.xdotool} mousemove --sync {x} {y}")
-            elif action == "left_click_drag":
-                return await self.shell(
-                    f"{self.xdotool} mousedown 1 mousemove --sync {x} {y} mouseup 1"
-                )
+        if action in ("left_mouse_down", "left_mouse_up"):
+            if text is not None:
+                raise ToolError(f"text is not accepted for {action}")
+            move_cmd = ""
+            if coordinate is not None:
+                x, y = self._validate_and_get_coordinates(coordinate)
+                move_cmd = f"mousemove --sync {x} {y} "
+            verb = "mousedown" if action == "left_mouse_down" else "mouseup"
+            return await self.shell(f"{self.xdotool} {move_cmd}{verb} 1")
 
-        if action in ("key", "type"):
+        if action in ("key", "hold_key"):
             if text is None:
                 raise ToolError(f"text is required for {action}")
             if coordinate is not None:
@@ -144,34 +178,72 @@ class ComputerTool(BaseAnthropicTool):
 
             if action == "key":
                 return await self.shell(f"{self.xdotool} key -- {text}")
-            elif action == "type":
-                results: list[ToolResult] = []
-                for chunk in chunks(text, TYPING_GROUP_SIZE):
-                    cmd = f"{self.xdotool} type --delay {TYPING_DELAY_MS} -- {shlex.quote(chunk)}"
-                    results.append(await self.shell(cmd, take_screenshot=False))
-                screenshot_base64 = (await self.screenshot()).base64_image
-                return ToolResult(
-                    output="".join(result.output or "" for result in results),
-                    error="".join(result.error or "" for result in results),
-                    base64_image=screenshot_base64,
+            else:
+                hold_seconds = float(duration) if duration is not None else 1.0
+                return await self.shell(
+                    f"{self.xdotool} keydown -- {text} sleep {hold_seconds} keyup -- {text}"
                 )
+
+        if action == "type":
+            if text is None:
+                raise ToolError(f"text is required for {action}")
+            if coordinate is not None:
+                raise ToolError(f"coordinate is not accepted for {action}")
+            if not isinstance(text, str):
+                raise ToolError(output=f"{text} must be a string")
+
+            results: list[ToolResult] = []
+            for chunk in chunks(text, TYPING_GROUP_SIZE):
+                cmd = f"{self.xdotool} type --delay {TYPING_DELAY_MS} -- {shlex.quote(chunk)}"
+                results.append(await self.shell(cmd, take_screenshot=False))
+            screenshot_base64 = (await self.screenshot()).base64_image
+            return ToolResult(
+                output="".join(result.output or "" for result in results),
+                error="".join(result.error or "" for result in results),
+                base64_image=screenshot_base64,
+            )
+
+        if action == "scroll":
+            if scroll_direction is None or scroll_direction not in SCROLL_BUTTONS:
+                raise ToolError(
+                    f"scroll_direction must be one of {list(SCROLL_BUTTONS)}"
+                )
+            if not isinstance(scroll_amount, int) or scroll_amount < 0:
+                raise ToolError("scroll_amount must be a non-negative int")
+
+            move_cmd = ""
+            if coordinate is not None:
+                x, y = self._validate_and_get_coordinates(coordinate)
+                move_cmd = f"mousemove --sync {x} {y} "
+
+            modifier = f"keydown -- {text} " if text else ""
+            unmodifier = f" keyup -- {text}" if text else ""
+            button = SCROLL_BUTTONS[scroll_direction]
+            return await self.shell(
+                f"{self.xdotool} {modifier}{move_cmd}click --repeat {scroll_amount} {button}{unmodifier}"
+            )
+
+        if action == "wait":
+            wait_seconds = float(duration) if duration is not None else 1.0
+            await asyncio.sleep(wait_seconds)
+            return await self.screenshot()
 
         if action in (
             "left_click",
             "right_click",
             "double_click",
+            "triple_click",
             "middle_click",
             "screenshot",
             "cursor_position",
         ):
-            if text is not None:
-                raise ToolError(f"text is not accepted for {action}")
-            if coordinate is not None:
-                raise ToolError(f"coordinate is not accepted for {action}")
-
             if action == "screenshot":
+                if text is not None or coordinate is not None:
+                    raise ToolError(f"text/coordinate is not accepted for {action}")
                 return await self.screenshot()
             elif action == "cursor_position":
+                if text is not None or coordinate is not None:
+                    raise ToolError(f"text/coordinate is not accepted for {action}")
                 result = await self.shell(
                     f"{self.xdotool} getmouselocation --shell",
                     take_screenshot=False,
@@ -184,15 +256,28 @@ class ComputerTool(BaseAnthropicTool):
                 )
                 return result.replace(output=f"X={x},Y={y}")
             else:
-                click_arg = {
-                    "left_click": "1",
-                    "right_click": "3",
-                    "middle_click": "2",
-                    "double_click": "--repeat 2 --delay 500 1",
-                }[action]
-                return await self.shell(f"{self.xdotool} click {click_arg}")
+                move_cmd = ""
+                if coordinate is not None:
+                    x, y = self._validate_and_get_coordinates(coordinate)
+                    move_cmd = f"mousemove --sync {x} {y} "
+                modifier = f"keydown -- {text} " if text else ""
+                unmodifier = f" keyup -- {text}" if text else ""
+                repeat = {"double_click": 2, "triple_click": 3}.get(action, 1)
+                button = CLICK_BUTTONS[
+                    action if action in CLICK_BUTTONS else "left_click"
+                ]
+                return await self.shell(
+                    f"{self.xdotool} {modifier}{move_cmd}click --repeat {repeat} --delay 100 {button}{unmodifier}"
+                )
 
         raise ToolError(f"Invalid action: {action}")
+
+    def _validate_and_get_coordinates(self, coordinate: tuple[int, int] | None):
+        if not isinstance(coordinate, list) or len(coordinate) != 2:
+            raise ToolError(f"{coordinate} must be a tuple of length 2")
+        if not all(isinstance(i, int) and i >= 0 for i in coordinate):
+            raise ToolError(f"{coordinate} must be a tuple of non-negative ints")
+        return self.scale_coordinates(ScalingSource.API, coordinate[0], coordinate[1])
 
     async def screenshot(self):
         """Take a screenshot of the current screen and return the base64 encoded image."""
