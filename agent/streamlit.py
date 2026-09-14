@@ -373,8 +373,13 @@ def _render_message(
                 st.write(message["text"])
             elif message["type"] == "tool_use":
                 st.code(f'Tool Use: {message["name"]}\nInput: {message["input"]}')
+            elif message["type"] == "thinking":
+                with st.expander("💭 Thinking", expanded=False):
+                    st.markdown(message.get("thinking", ""))
+            elif message["type"] == "redacted_thinking":
+                st.caption("💭 (redacted thinking block)")
             else:
-                # only expected return types are text and tool_use
+                # only expected return types are text, tool_use, thinking and redacted_thinking
                 raise Exception(f'Unexpected response type {message["type"]}')
         else:
             st.markdown(message)
